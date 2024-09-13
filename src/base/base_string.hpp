@@ -14,13 +14,13 @@ public:
   u64 size = 0;
 
 public:
-  inline u64 len() const { return this->size; };
-  inline char *raw_data() const { return this->data; };
-
   static bool equals(String s1, String s2);
   static String copy(String s, Arena *arena);
   static String copy_into(String src, String *dest);
   static String concat(String s1, String s2, Arena *arena);
+
+  inline u64 len() const { return this->size; };
+  inline char *raw_data() const { return this->data; };
 
   String clone(Arena *arena) const;
   String from_cstring(char *cstr, Arena *arena) const;

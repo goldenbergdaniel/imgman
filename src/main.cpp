@@ -14,9 +14,9 @@ i32 main(i32 argc, char *argv[])
   printf("H: %i\n", height);
 
   Slice<u8> bytes;
-  bytes.from_ptr(data, 0, 5);
-  bytes = bytes.slice(2, bytes.len());
-  printf("%i\n", bytes[0]);
+  bytes.from_ptr(data, 0, width*height);
+  bytes = bytes.slice(0, bytes.len());
+  printf("%i %i %i\n", bytes[0], bytes[1], bytes[2]);
 
   Arena arena = create_arena(1024, false);
 
@@ -25,6 +25,8 @@ i32 main(i32 argc, char *argv[])
   String res = name.slice(1, name.len()-1);
   res = res.clone(&arena);
   printf("%s\n", res.raw_data());
+
+  arena.clear();
   
   return 0;
 }

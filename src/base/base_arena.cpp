@@ -31,6 +31,8 @@
 #define SCRATCH_SIZE GiB(16)
 #endif
 
+static byte *align_ptr(byte *ptr, u32 align);
+
 thread_local Arena _scratch_1;
 thread_local Arena _scratch_2;
 
@@ -62,11 +64,10 @@ void destroy_arena(Arena *arena)
   arena->size = 0;
 }
 
-// @NOTE(dg): Think about splitting commit across multiple calls
-u8 *_arena_push(Arena *arena, u64 size, u64 align)
+byte *Arena::push(u64 size, u64 align)
 {
-  u8 *ptr = align_ptr(arena->allocated, align);
-  arena->allocated = ptr + size;
+  byte *ptr = align_ptr(this->allocated, align);
+  this->allocated = ptr + size;
 
   #ifndef BASE_USE_NEW
   if (arena->committed < arena->allocated)
@@ -93,20 +94,20 @@ u8 *_arena_push(Arena *arena, u64 size, u64 align)
   return ptr;
 }
 
-void arena_pop(Arena *arena, u64 size)
+void Arena::pop(u64 size)
 {
-  arena->allocated -= size;
+  this->allocated -= size;
   
   // Zero the memory
-  u64 start_idx = (u64) (arena->allocated - arena->memory) - 1;
+  u64 start_idx = (u64) (this->allocated - this->memory) - 1;
   u64 end_idx = start_idx + size;
   for (u64 i = start_idx; i < end_idx; i++)
   {
-    arena->allocated[i] = 0;
+    this->allocated[i] = 0;
   }
 }
 
-void arena_clear(Arena *arena)
+void Arena::clear()
 {
   #ifndef BASE_USE_NEW
   if (arena->decommit_on_clear)
@@ -126,12 +127,12 @@ void arena_clear(Arena *arena)
   }
   #endif
 
-  for (u64 i = 0; i < arena->allocated - arena->memory; i++)
+  for (u64 i = 0; i < this->allocated - this->memory; i++)
   {
-    arena->memory[i] = 0;
+    this->memory[i] = 0;
   }
 
-  arena->allocated = arena->memory;
+  this->allocated = this->memory;
 }
 
 void init_scratch_arenas(void)
@@ -161,7 +162,8 @@ Arena get_scratch_arena(Arena *conflict)
   return result;
 }
 
-u8 *align_ptr(u8 *ptr, u32 align)
+static
+byte *align_ptr(byte *ptr, u32 align)
 {
 	u64 result = (u64) ptr;
   u64 remainder = result % align;
@@ -170,5 +172,5 @@ u8 *align_ptr(u8 *ptr, u32 align)
     result += align - remainder;
   }
 
-	return (u8 *) result;
+	return (byte *) result;
 }

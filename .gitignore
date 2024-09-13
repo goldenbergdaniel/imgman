@@ -1,4 +1,4 @@
 .DS_STORE
 .vscode/
 out/
-ext/libstbi.a
+ext/stb/libstbi.a

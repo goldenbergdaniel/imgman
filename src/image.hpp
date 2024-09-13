@@ -12,20 +12,12 @@ enum Channel
   CHANNEL_RGB,
 };
 
-struct Color
-{
-  u8 r, g, b;
-
-  Color();
-  Color(u8 r, u8 g, u8 b);
-};
-
 class Image
 {
 private:
   i32 width;
   i32 height;
-  Color *pixels;
+  byte *data;
 
 public:
   Image();

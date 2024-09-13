@@ -5,7 +5,7 @@
 
 // @String =====================================================================
 
-#define str(lit) ((String) {(char *) lit, size_of (lit) - 1})
+#define str(lit) (String(lit))
 
 class String
 {
@@ -14,6 +14,10 @@ public:
   u64 size = 0;
 
 public:
+  String() {}
+  String(const char *lit) { this->data = (char *) lit; this->size = size_of(lit) - 1; }
+  String(const char *lit, u64 len) { this->data = (char *) lit; this->size = len; }
+
   static bool equals(String s1, String s2);
   static String copy(String s, Arena *arena);
   static String copy_into(String src, String *dest);
@@ -35,7 +39,7 @@ public:
   String to_upper(Arena *arena) const;
 
   inline
-  const char operator[](u64 index) const
+  const char &operator[](u64 index) const
   {
     assert(index >= 0 && index < this->size);
 

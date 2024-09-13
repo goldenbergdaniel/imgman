@@ -26,7 +26,7 @@ String String::clone(Arena *arena) const
 inline
 String String::from_cstring(char *cstr, Arena *arena) const
 {
-  return String::copy((String) {cstr, cstr_len(cstr)-1}, arena);
+  return String::copy(String(cstr, cstr_len(cstr)-1), arena);
 }
 
 bool String::equals(String s1, String s2)

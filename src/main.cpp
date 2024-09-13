@@ -27,7 +27,7 @@ i32 main(i32 argc, char *argv[])
   arena.clear();
 
   String name = str("Daniel");
-  printf("%c\n", name[0]);
+  printf("%c %llu\n", name[0], name.len()); 
   String res = name.slice(1, name.len()-1);
   res = res.clone(&arena);
   printf("%s\n", res.raw_data());

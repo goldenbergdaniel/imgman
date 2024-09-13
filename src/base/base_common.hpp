@@ -20,7 +20,7 @@ typedef float f32;
 typedef double f64;
 
 #define size_of(T) sizeof(T)
-#define align_of(T) _Alignof(T)
+#define align_of(T) alignof(T)
 
 #define has_bit(set, bit) ((set & bit) != 0)
 

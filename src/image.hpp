@@ -1,29 +1,15 @@
 #pragma once
 
-#include <fstream>
-#include "globals.hpp"
+#include "base/base.hpp"
 
 #define IMG_MAX_SIZE 512*512
 
 enum Channel 
 {
-  R, G, B, RGB
-};
-
-struct Header 
-{
-  i8 id_len;
-  i8 color_map_type;
-  i8 data_type_code;
-  i16 color_map_origin;
-  i16 color_map_len;
-  i8 color_map_depth;
-  i16 x_origin;
-  i16 y_origin;
-  i16 width;
-  i16 height;
-  i8 bpp;
-  i8 image_desc;
+  CHANNEL_R, 
+  CHANNEL_G, 
+  CHANNEL_B, 
+  CHANNEL_RGB,
 };
 
 struct Color
@@ -37,7 +23,8 @@ struct Color
 class Image
 {
 private:
-  Header header;
+  i32 width;
+  i32 height;
   Color *pixels;
 
 public:
@@ -53,10 +40,6 @@ public:
   void rotate();
   i32 compare(Image *other);
 
-  void read(std::ifstream *stream);
-  void write(std::ofstream *stream, Channel ch);
-
-private:
-  void write_pixels(std::ofstream *stream, Channel ch);
-  void write_header(std::ofstream *stream);
+  void read(String path);
+  void write(String path);
 };

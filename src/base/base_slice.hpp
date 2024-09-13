@@ -1,6 +1,6 @@
 #pragma once
 
-#include "globals.hpp"
+#include "base_common.hpp"
 
 template <typename T>
 class Slice

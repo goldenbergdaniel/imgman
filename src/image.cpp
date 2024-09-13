@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
@@ -12,241 +14,169 @@ static u8 revert(f32 val);
 
 Image::Image()
 {
-  // this->pixels = new Color[IMG_MAX_SIZE];
+
 }
 
 Image::~Image()
 {
-  // delete[] this->pixels;
+
 }
 
-void Image::multiply(Image *other, Channel ch)
+void Image::multiply_by_image(Image *other, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        r = revert(normalize(r) * normalize(other->data[i+0]));
-        break;
-      case CHANNEL_G:
-        g = revert(normalize(g) * normalize(other->data[i+1]));
-        break;
-      case CHANNEL_B:
-        b = revert(normalize(b) * normalize(other->data[i+2]));
-        break;
-      case CHANNEL_RGB:
-        r = revert(normalize(r) * normalize(other->data[i+0]));
-        g = revert(normalize(g) * normalize(other->data[i+1]));
-        b = revert(normalize(b) * normalize(other->data[i+2]));
-        break;
-      default: break;
+      r = revert(normalize(r) * normalize(other->data[i+0]));
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      g = revert(normalize(g) * normalize(other->data[i+1]));
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      b = revert(normalize(b) * normalize(other->data[i+2]));
     }
   }
 }
 
-void Image::scale(f32 x, Channel ch)
+void Image::scale_color(f32 x, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        r = clamp(revert(normalize(r)) * x, 0, 255);
-        break;
-      case CHANNEL_G:
-        g = clamp(revert(normalize(g)) * x, 0, 255);
-        break;
-      case CHANNEL_B:
-        b = clamp(revert(normalize(b)) * x, 0, 255);
-        break;
-      case CHANNEL_RGB:
-        r = clamp(revert(normalize(r) * x), 0, 255);
-        g = clamp(revert(normalize(g) * x), 0, 255);
-        b = clamp(revert(normalize(b) * x), 0, 255);
-        break;
-      default: break;
+      r = clamp(revert(normalize(r)) * x, 0, 255);
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      g = clamp(revert(normalize(g)) * x, 0, 255);
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      b = clamp(revert(normalize(b)) * x, 0, 255);
     }
   }
 }
 
-void Image::screen(Image *other, Channel ch)
+void Image::screen_by_image(Image *other, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        r = revert(1 - (1 - normalize(r)) * (1 - normalize(other->data[i+0])));
-        break;
-      case CHANNEL_G:
-        g = revert(1 - (1 - normalize(g)) * (1 - normalize(other->data[i+1])));
-        break;
-      case CHANNEL_B:
-        b = revert(1 - (1 - normalize(b)) * (1 - normalize(other->data[i+2])));
-        break;
-      case CHANNEL_RGB:
-        r = revert(1 - (1 - normalize(r)) * (1 - normalize(other->data[i+0])));
-        g = revert(1 - (1 - normalize(g)) * (1 - normalize(other->data[i+1])));
-        b = revert(1 - (1 - normalize(b)) * (1 - normalize(other->data[i+2])));
-        break;
-      default: break;
+      r = revert(1 - (1 - normalize(r)) * (1 - normalize(other->data[i+0])));
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      g = revert(1 - (1 - normalize(g)) * (1 - normalize(other->data[i+1])));
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      b = revert(1 - (1 - normalize(b)) * (1 - normalize(other->data[i+2])));
     }
   }
 }
 
-void Image::add(i16 x, Channel ch)
+void Image::add(i16 x, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        r = clamp(r + x, 0, 255);
-        break;
-      case CHANNEL_G:
-        g = clamp(g + x, 0, 255);
-        break;
-      case CHANNEL_B:
-        b = clamp(b + x, 0, 255);
-        break;
-      case CHANNEL_RGB:
-        r = clamp(r + x, 0, 255);
-        g = clamp(g + x, 0, 255);
-        b = clamp(b + x, 0, 255);
-        break;
-      default:
-        break;
+      r = clamp(r + x, 0, 255);
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      g = clamp(g + x, 0, 255);
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      b = clamp(b + x, 0, 255);
     }
   }
 }
 
-void Image::subtract(Image *img, Channel ch)
+void Image::subtract_by_image(Image *other, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        r = clamp(r - r, 0, 255);
-        break;
-      case CHANNEL_G:
-        g = clamp(g - g, 0, 255);
-        break;
-      case CHANNEL_B:
-        b = clamp(b - b, 0, 255);
-        break;
-      case CHANNEL_RGB:
-        r = clamp(r - r, 0, 255);
-        g = clamp(g - g, 0, 255);
-        b = clamp(b - b, 0, 255);
-        break;
-      default: break;
+      r = clamp(r - other->data[i+0], 0, 255);
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      g = clamp(g + other->data[i+1], 0, 255);
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      b = clamp(b + other->data[i+2], 0, 255);
     }
   }
 }
 
-void Image::overlay(Image *other, Channel ch)
+void Image::overlay_by_image(Image *other, ChannelSet ch)
 {
-  u32 size = this->width * this->height;
-
-  for (u32 i = 0; i < size; i += 3)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
 
-    switch (ch)
+    if (has_bit(ch, Channel_R))
     {
-      case CHANNEL_R:
-        if (normalize(other->data[i+0]) <= 0.5f)
-        {
-          r = revert(2 * normalize(r) * normalize(other->data[i+0]));
-        }
-        else
-        {
-          r = revert(1 - (2 * ((1 - normalize(r)) * (1 - normalize(other->data[i+0])))));
-        }
-        break;
-      case CHANNEL_G:
-        if (normalize(other->data[i+1]) <= 0.5f)
-        {
-          g = revert(2 * normalize(g) * normalize(other->data[i+1]));
-        }
-        else
-        {
-          g = revert(1 - (2 * ((1 - normalize(g)) * (1 - normalize(other->data[i+1])))));
-        }
-        break;
-      case CHANNEL_B:
-        if (normalize(other->data[i+2]) <= 0.5f)
-        {
-          b = revert(2 * normalize(b) * normalize(other->data[i+2]));
-        }
-        else
-        {
-          b = revert(1 - (2 * ((1 - normalize(b)) * (1 - normalize(other->data[i+2])))));
-        }
-        break;
-      case CHANNEL_RGB:
-        if (normalize(other->data[i+0]) <= 0.5f)
-        {
-          r = revert(2 * normalize(r) * normalize(other->data[i+0]));
-        }
-        else
-        {
-          r = revert(1 - (2 * ((1 - normalize(r)) * (1 - normalize(other->data[i+0])))));
-        }
-
-        if (normalize(other->data[i+1]) <= 0.5f)
-        {
-          g = revert(2 * normalize(g) * normalize(other->data[i+1]));
-        }
-        else
-        {
-          g = revert(1 - (2 * ((1 - normalize(g)) * (1 - normalize(other->data[i+1])))));
-        }
-        
-        if (normalize(other->data[i+2]) <= 0.5f)
-        {
-          b = revert(2 * normalize(b) * normalize(other->data[i+2]));
-        }
-        else
-        {
-          b = revert(1 - (2 * ((1 - normalize(b)) * (1 - normalize(other->data[i+2])))));
-        }
-        break;
-      default: break;
+      if (normalize(other->data[i+0]) <= 0.5f)
+      {
+        r = revert(2 * normalize(r) * normalize(other->data[i+0]));
+      }
+      else
+      {
+        r = revert(1 - (2 * ((1 - normalize(r)) * (1 - normalize(other->data[i+0])))));
+      }
+    }
+    if (has_bit(ch, Channel_G))
+    {
+      if (normalize(other->data[i+1]) <= 0.5f)
+      {
+        g = revert(2 * normalize(g) * normalize(other->data[i+1]));
+      }
+      else
+      {
+        g = revert(1 - (2 * ((1 - normalize(g)) * (1 - normalize(other->data[i+1])))));
+      }
+    }
+    if (has_bit(ch, Channel_B))
+    {
+      if (normalize(other->data[i+2]) <= 0.5f)
+      {
+        b = revert(2 * normalize(b) * normalize(other->data[i+2]));
+      }
+      else
+      {
+        b = revert(1 - (2 * ((1 - normalize(b)) * (1 - normalize(other->data[i+2])))));
+      }
     }
   }
 }
@@ -263,20 +193,22 @@ void Image::rotate()
   // }
 }
 
-i32 Image::compare(Image *other)
+void Image::resize(i32 width, i32 height)
+{
+
+}
+
+i32 Image::compare_to_image(Image *other) const
 {
   i32 diff = 0;
-  u32 size = this->width * this->height;
 
-  for (u32 i = 0; i < size; i++)
+  for (u32 i = 0; i < this->size(); i += 3)
   {
     byte &r = this->data[i+0];
     byte &g = this->data[i+1];
     byte &b = this->data[i+2];
     
-    if (r != other->data[i+0] || 
-        g != other->data[i+1] ||
-        b != other->data[i+2])
+    if (r != other->data[i+0] || g != other->data[i+1] || b != other->data[i+2])
     {
       diff++;
     }
@@ -285,18 +217,33 @@ i32 Image::compare(Image *other)
   return diff;
 }
 
-void Image::read(String path)
+void Image::read_from_path(String path, Arena *arena)
 {
-  this->data = stbi_load(path.raw_data(), 
-                         &this->width, 
-                         &this->height, 
-                         nullptr,
-                         3);
+  byte *temp = stbi_load(path.raw_data(), &this->width, &this->height, nullptr, 3);
+  this->data = arena_push(arena, byte, this->size());
+  memcpy(this->data, temp, this->size());
+  free(temp);
 }
 
-void Image::write(String path)
+void Image::read_from_image(Image *other, Arena *arena)
+{
+  this->width = other->width;
+  this->height = other->height;
+  this->data = arena_push(arena, byte, other->size());
+  memcpy(this->data, other->data, other->size());
+}
+
+void Image::write_to_path(String path) const
 {
   stbi_write_tga(path.raw_data(), this->width, this->height, 3, this->data);
+}
+
+void Image::write_to_image(Image *other, Arena *arena) const
+{
+  other->width = this->width;
+  other->height = this->height;
+  other->data = arena_push(arena, byte, this->size());
+  memcpy(other->data, this->data, this->size());
 }
 
 // Math ////////////////////////////////////////////////////////////////////////
@@ -304,8 +251,8 @@ void Image::write(String path)
 static 
 u8 clamp(i32 val, i32 min, i32 max)
 {
-  if (val < min) val = min;
-  if (val > max) val = max;
+  if (val < min) return (u8) min;
+  if (val > max) return (u8) max;
 
   return (u8) val;
 }

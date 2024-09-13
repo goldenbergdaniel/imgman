@@ -2,36 +2,40 @@
 
 #include "base/base.hpp"
 
-#define IMG_MAX_SIZE 512*512
-
 enum Channel 
 {
-  CHANNEL_R, 
-  CHANNEL_G, 
-  CHANNEL_B, 
-  CHANNEL_RGB,
+  Channel_R = 1 << 0, 
+  Channel_G = 2 << 1, 
+  Channel_B = 3 << 2, 
 };
+
+typedef b64 ChannelSet;
 
 class Image
 {
-private:
-  i32 width;
-  i32 height;
-  byte *data;
-
+  byte *data = nullptr;
 public:
+  i32 width = 0;
+  i32 height = 0;
+
   Image();
   ~Image();
 
-  void scale(f32 x, Channel ch);
-  void multiply(Image *other, Channel ch);
-  void screen(Image *other, Channel ch);
-  void add(i16 x, Channel ch);
-  void subtract(Image *other, Channel ch);
-  void overlay(Image *other, Channel ch);
-  void rotate();
-  i32 compare(Image *other);
+  u64 size() const { return this->width * this->height; }
+  byte *raw_data() const { return this->data; }
 
-  void read(String path);
-  void write(String path);
+  void scale_color(f32 x, ChannelSet ch);
+  void multiply_by_image(Image *other, ChannelSet ch);
+  void screen_by_image(Image *other, ChannelSet ch);
+  void add(i16 x, ChannelSet ch);
+  void subtract_by_image(Image *other, ChannelSet ch);
+  void overlay_by_image(Image *other, ChannelSet ch);
+  void rotate();
+  void resize(i32 width, i32 height);
+  i32 compare_to_image(Image *other) const;
+
+  void read_from_path(String path, Arena *arena);
+  void read_from_image(Image *other, Arena *arena);
+  void write_to_path(String path) const;
+  void write_to_image(Image *other, Arena *arena) const;
 };

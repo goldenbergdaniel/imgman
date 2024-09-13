@@ -22,4 +22,6 @@ typedef double f64;
 #define size_of(T) sizeof(T)
 #define align_of(T) _Alignof(T)
 
+#define has_bit(set, bit) ((set & bit) != 0)
+
 #define log_color(caption, r, g, b) (printf("%s%i, %i, %i\n", caption, (i32) r, (i32) g, (i32) b))

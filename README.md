@@ -1,3 +1,3 @@
-# TGAmod
+# imgman
 
-TGA image modifier CLI tool.
+Image manipulator CLI tool.

@@ -1,8 +1,6 @@
 #include "base_arena.hpp"
 
-#define BASE_USE_NEW
-
-#ifndef BASE_USE_NEW
+#ifdef USE_CUSTOM_ALLOC
 #ifdef PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -28,7 +26,7 @@
 #define PAGES_PER_COMMIT 4
 
 #ifndef SCRATCH_SIZE
-#define SCRATCH_SIZE GiB(16)
+#define SCRATCH_SIZE MiB(64)
 #endif
 
 static byte *align_ptr(byte *ptr, u32 align);
@@ -36,32 +34,34 @@ static byte *align_ptr(byte *ptr, u32 align);
 thread_local Arena _scratch_1;
 thread_local Arena _scratch_2;
 
-Arena create_arena(u64 size, bool decommit_on_clear)
+Arena::Arena(u64 size)
 {
-  Arena arena;
-  #ifdef BASE_USE_NEW
-  arena.memory = new byte[size];
+  #ifdef USE_CUSTOM_ALLOC
+  arena.memory = os_reserve_vm(nullptr, size);
   #else
-  arena.memory = os_reserve_vm(NULL, size);
+  this->memory = new byte[size];
   #endif
-  arena.allocated = arena.memory;
-  arena.committed = arena.memory;
-  arena.size = size;
-  arena.decommit_on_clear = decommit_on_clear;
-
-  return arena;
+  this->allocated = this->memory;
+  this->committed = this->memory;
+  this->size = size;
+  this->decommit_on_clear = true;
 }
 
-void destroy_arena(Arena *arena)
+Arena::~Arena()
 {
-  #ifdef BASE_USE_NEW
-  delete[] arena->memory;
-  #else
+  this->release();
+}
+
+void Arena::release()
+{
+  #ifdef USE_CUSTOM_ALLOC
   os_release_vm(arena->memory, 0);
+  #else
+  delete[] this->memory;
   #endif
-  arena->memory = NULL;
-  arena->allocated = NULL;
-  arena->size = 0;
+  this->memory = nullptr;
+  this->allocated = nullptr;
+  this->size = 0;
 }
 
 byte *Arena::push(u64 size, u64 align)
@@ -69,7 +69,7 @@ byte *Arena::push(u64 size, u64 align)
   byte *ptr = align_ptr(this->allocated, align);
   this->allocated = ptr + size;
 
-  #ifndef BASE_USE_NEW
+  #ifdef USE_CUSTOM_ALLOC
   if (arena->committed < arena->allocated)
   {
     u64 granularity = os_get_page_size() * PAGES_PER_COMMIT;
@@ -109,7 +109,7 @@ void Arena::pop(u64 size)
 
 void Arena::clear()
 {
-  #ifndef BASE_USE_NEW
+  #ifdef USE_CUSTOM_ALLOC
   if (arena->decommit_on_clear)
   {
     u64 commit_size = arena->committed - arena->memory;
@@ -137,9 +137,9 @@ void Arena::clear()
 
 void init_scratch_arenas(void)
 {
-  _scratch_1 = create_arena(SCRATCH_SIZE, true);
+  _scratch_1 = Arena(SCRATCH_SIZE);
   _scratch_1.id = 0;
-  _scratch_2 = create_arena(SCRATCH_SIZE, true);
+  _scratch_2 = Arena(SCRATCH_SIZE);
   _scratch_2.id = 1;
 }
 
@@ -147,7 +147,7 @@ Arena get_scratch_arena(Arena *conflict)
 {
   Arena result = _scratch_1;
   
-  if (conflict != NULL)
+  if (conflict != nullptr)
   {
     if (conflict->id == _scratch_1.id)
     {

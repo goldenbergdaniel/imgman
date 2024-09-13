@@ -17,9 +17,7 @@ class Image
 public:
   i32 width = 0;
   i32 height = 0;
-
-  Image();
-  ~Image();
+  i32 channels = 0;
 
   u64 size() const { return this->width * this->height; }
   byte *raw_data() const { return this->data; }
@@ -38,4 +36,6 @@ public:
   void read_from_image(Image *other, Arena *arena);
   void write_to_path(String path) const;
   void write_to_image(Image *other, Arena *arena) const;
+
+  void print_stats() const;
 };

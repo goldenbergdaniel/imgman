@@ -12,16 +12,6 @@ static u8 revert(f32 val);
 
 // Image ///////////////////////////////////////////////////////////////////////
 
-Image::Image()
-{
-
-}
-
-Image::~Image()
-{
-
-}
-
 void Image::multiply_by_image(Image *other, ChannelSet ch)
 {
   for (u32 i = 0; i < this->size(); i += 3)
@@ -219,31 +209,51 @@ i32 Image::compare_to_image(Image *other) const
 
 void Image::read_from_path(String path, Arena *arena)
 {
-  byte *temp = stbi_load(path.raw_data(), &this->width, &this->height, nullptr, 3);
+  byte *temp = stbi_load(path.raw_data(), 
+                         &this->width, 
+                         &this->height, 
+                         &this->channels,
+                         3);
+
   this->data = arena_push(arena, byte, this->size());
   memcpy(this->data, temp, this->size());
   free(temp);
+
+  assert(this->channels == 3);
 }
 
 void Image::read_from_image(Image *other, Arena *arena)
 {
   this->width = other->width;
   this->height = other->height;
+  this->channels = other->channels;
   this->data = arena_push(arena, byte, other->size());
   memcpy(this->data, other->data, other->size());
 }
 
 void Image::write_to_path(String path) const
 {
-  stbi_write_tga(path.raw_data(), this->width, this->height, 3, this->data);
+  stbi_write_tga(path.raw_data(), 
+                 this->width, 
+                 this->height, 
+                 this->channels, 
+                 this->data);
 }
 
 void Image::write_to_image(Image *other, Arena *arena) const
 {
   other->width = this->width;
   other->height = this->height;
+  other->channels = this->channels;
   other->data = arena_push(arena, byte, this->size());
   memcpy(other->data, this->data, this->size());
+}
+
+void Image::print_stats() const
+{
+  printf("   WIDTH: %i\n", this->width);
+  printf("  HEIGHT: %i\n", this->height);
+  printf("CHANNELS: %i\n", this->channels);
 }
 
 // Math ////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,3 @@
-#include "stb/stb_image.h"
-#include "stb/stb_image_write.h"
-
 #include "base/base.hpp"
 #include "base/base_arena.cpp"
 #include "base/base_string.cpp"
@@ -10,13 +7,14 @@
 
 i32 main(i32 argc, char *argv[])
 {
-  Arena arena = create_arena(MiB(16), false);
+  // init_scratch_arenas();
+
+  Arena arena = Arena(MiB(16));
 
   Image image;
   image.read_from_path(str("res/car.tga"), &arena);
   image.add(10, Channel_R | Channel_B);
-  printf("W: %i\n", image.width);
-  printf("H: %i\n", image.height);
+  image.print_stats();
 
   Image overlay;
   overlay.read_from_image(&image, &arena);
@@ -33,6 +31,13 @@ i32 main(i32 argc, char *argv[])
   String res = name.slice(1, name.len()-1);
   res = res.clone(&arena);
   printf("%s\n", res.raw_data());
+
+  if (argc > 1)
+  {
+    printf("\n");
+    for (i32 i = 1; i < argc; i++) printf("%s ", argv[i]);
+    printf("\n");
+  }
   
   return 0;
 }

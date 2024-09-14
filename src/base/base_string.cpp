@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "base_common.hpp"
 #include "base_arena.hpp"
 #include "base_string.hpp"
@@ -23,10 +25,9 @@ String String::clone(Arena *arena) const
   return String::copy(*this, arena);
 }
 
-inline
-String String::from_cstring(char *cstr, Arena *arena) const
+String String::clone_from_cstring(char *cstr, Arena *arena) const
 {
-  return String::copy(String(cstr, cstr_len(cstr)-1), arena);
+  return String::copy(String(cstr, cstr_len(cstr)), arena);
 }
 
 bool String::equals(String s1, String s2)
@@ -273,6 +274,11 @@ String String::to_upper(Arena *arena) const
   return result;
 }
 
+void String::print() const
+{
+  printf("%.*s\n", (u32) this->size, this->data);
+}
+
 // @CString ====================================================================
 
 inline
@@ -280,12 +286,12 @@ u64 cstr_len(char *s)
 {
   u64 len = 0;
   for (; s[len]; len++);
-  return len+1;
+  return len;
 }
 
 void copy_cstr_into_str(String *dest, char *src)
 {
-  u64 len = cstr_len(src)-1;
+  u64 len = cstr_len(src);
   for (u64 i = 0; i < len; i++)
   {
     dest->data[i] = src[i];

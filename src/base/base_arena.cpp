@@ -1,5 +1,7 @@
 #include "base_arena.hpp"
 
+#include <cstring>
+
 #ifdef USE_CUSTOM_ALLOC
 #ifdef PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -40,6 +42,7 @@ Arena::Arena(u64 size)
   arena.memory = os_reserve_vm(nullptr, size);
   #else
   this->memory = new byte[size];
+  memset(this->memory, 0, size);
   #endif
   this->allocated = this->memory;
   this->committed = this->memory;

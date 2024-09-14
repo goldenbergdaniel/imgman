@@ -3,7 +3,7 @@
 #include "base_common.hpp"
 #include "base_arena.hpp"
 
-// @String =====================================================================
+// @String /////////////////////////////////////////////////////////////////////
 
 #define str(lit) (String(lit))
 
@@ -16,7 +16,7 @@ public:
 public:
   String() {}
   String(const char *lit) { this->data = (char *) lit; this->size = size_of(lit) - 1; }
-  String(const char *lit, u64 len) { this->data = (char *) lit; this->size = len; }
+  String(char *cstr, u64 len) { this->data = cstr; this->size = len; }
 
   static bool equals(String s1, String s2);
   static String copy(String s, Arena *arena);
@@ -27,7 +27,7 @@ public:
   inline char *raw_data() const { return this->data; };
 
   String clone(Arena *arena) const;
-  String from_cstring(char *cstr, Arena *arena) const;
+  String clone_from_cstring(char *cstr, Arena *arena) const;
   bool contains(String substr) const;
   i64 find(String substr, u64 start, u64 end) const;
   i64 find(char c, u64 start, u64 end) const;
@@ -37,17 +37,18 @@ public:
   String strip_back(String substr) const;
   String to_lower(Arena *arena) const;
   String to_upper(Arena *arena) const;
+  void print() const;
 
-  inline
-  const char &operator[](u64 index) const
+  inline const 
+  char &operator[](u64 index) const
   {
     assert(index >= 0 && index < this->size);
 
     return this->data[index];
   }
 
-  inline
-  const void operator=(String other)
+  inline const 
+  void operator=(String other)
   {
     this->data = other.data;
     this->size = other.size;
@@ -56,7 +57,7 @@ public:
 
 String alloc_str(u64 len, Arena *arena);
 
-// @CStr =======================================================================
+// @CStr ///////////////////////////////////////////////////////////////////////
 
 u64 cstr_len(char *cstr);
 void cstr_copy(String *dest, char *src);

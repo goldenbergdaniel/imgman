@@ -17,3 +17,4 @@ if "%MODE%"=="rls" set CFLAGS= /O2
 set LFLAGS= /link /incremental:no /libpath:ext stb\stbi.lib
 
 cl %COMMON% %CFLAGS% %SRC% /Fe%OUT% %LFLAGS% || exit /b 1
+del *.obj

@@ -213,13 +213,11 @@ void Image::read_from_path(String path, Arena *arena)
                          &this->width, 
                          &this->height, 
                          &this->channels,
-                         3);
+                         4);
 
   this->data = arena_push(arena, byte, this->size());
   memcpy(this->data, temp, this->size());
   free(temp);
-
-  assert(this->channels == 3);
 }
 
 void Image::read_from_image(Image *other, Arena *arena)

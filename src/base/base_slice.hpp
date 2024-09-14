@@ -7,13 +7,13 @@ class Slice
 {
 private:
   T *data = nullptr;
-  u64 size = 0;
+  u64 count = 0;
 
 public:
   inline
   u64 len() const
   {
-    return this->size;
+    return this->count;
   }
 
   inline 
@@ -25,7 +25,7 @@ public:
   inline 
   T &operator[](u64 index)
   {
-    assert(index >= 0 && index < this->size);
+    assert(index >= 0 && index < this->count);
 
     return this->data[index];
   }
@@ -34,24 +34,24 @@ public:
   void operator=(const Slice<T> &other)
   {
     this->data = other.data;
-    this->size = other.size;
+    this->count = other.count;
   }
 
   Slice<T> slice(u64 start, u64 end) const
   {
-    assert(start < end && start >= 0 && end <= this->size);
+    assert(start < end && start >= 0 && end <= this->count);
 
     Slice<T> result;
     result.data = &this->data[start];
-    result.size = end - start;
+    result.count = end - start;
 
     return result;
   }
 
-  void from_ptr(T *data, u64 size)
+  void from_ptr(T *data, u64 count=1)
   {
     this->data = data;
-    this->size = size;
+    this->count = count;
   }
 
   void from_ptr(T *data, u64 start, u64 end)
@@ -59,6 +59,6 @@ public:
     assert(start < end && start >= 0);
 
     this->data = &data[start];
-    this->size = end - start;
+    this->count = end - start;
   }
 };

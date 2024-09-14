@@ -25,11 +25,33 @@ String string_from_argv(char *argv[], i32 argc, Arena *arena)
   return result;
 }
 
-Slice<Argument> argument_list_from_string(String str, Arena *arena)
+Slice<Argument> argument_list_from_string(String arg_str, Arena *arena)
 {
   Slice<Argument> result;
+  u32 argument_idx = 0;
 
-  
+  Argument *buf = arena_push(arena, Argument, 32);
+
+  // Tokenize ----------------
+  {
+    i32 tokenizer_pos = 0;
+
+    for (;tokenizer_pos < arg_str.len();)
+    {
+      String substr;
+      
+      for (i32 i = 0; i < arg_str.len(); i++)
+      {
+        char c = arg_str[i];
+
+        if (c == '-')
+        {
+        }
+      }
+    }
+  }
+
+  result.from_ptr(buf, argument_idx);
 
   return result;
 }

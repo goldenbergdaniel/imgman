@@ -185,7 +185,7 @@ void Image::rotate()
 
 void Image::resize(i32 width, i32 height)
 {
-
+  
 }
 
 i32 Image::compare_to_image(Image *other) const
@@ -229,13 +229,44 @@ void Image::read_from_image(Image *other, Arena *arena)
   memcpy(this->data, other->data, other->size());
 }
 
+// $TODO(dg): Figure out stride and quality.
 void Image::write_to_path(String path) const
 {
-  stbi_write_tga(path.raw_data(), 
-                 this->width, 
-                 this->height, 
-                 this->channels, 
-                 this->data);
+  switch (this->format_type())
+  {
+    case FormatType_Nil:
+    break;
+    case FormatType_PNG:
+      stbi_write_png(path.raw_data(), 
+                      this->width, 
+                      this->height, 
+                      this->channels, 
+                      this->data,
+                      1);
+    break;
+    case FormatType_JPG:
+      stbi_write_jpg(path.raw_data(), 
+                      this->width, 
+                      this->height, 
+                      this->channels, 
+                      this->data,
+                      1);
+    break;
+    case FormatType_TGA:
+      stbi_write_tga(path.raw_data(), 
+                    this->width, 
+                    this->height, 
+                    this->channels, 
+                    this->data);
+    break;
+    case FormatType_BMP:
+      stbi_write_bmp(path.raw_data(), 
+                      this->width, 
+                      this->height, 
+                      this->channels, 
+                      this->data);
+    break;
+  }
 }
 
 void Image::write_to_image(Image *other, Arena *arena) const

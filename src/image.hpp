@@ -9,11 +9,24 @@ enum Channel
   Channel_B = 3 << 2, 
 };
 
+enum FormatType
+{
+  FormatType_Nil,
+
+  FormatType_PNG,
+  FormatType_JPG,
+  FormatType_TGA,
+  FormatType_BMP,
+};
+
 typedef b64 ChannelSet;
 
 class Image
 {
+private:
   byte *data = nullptr;
+  FormatType type = FormatType_Nil;
+
 public:
   i32 width = 0;
   i32 height = 0;
@@ -21,6 +34,7 @@ public:
 
   u64 size() const { return this->width * this->height; }
   byte *raw_data() const { return this->data; }
+  FormatType format_type() const { return this->format_type(); }
 
   void scale_color(f32 x, ChannelSet ch);
   void multiply_by_image(Image *other, ChannelSet ch);

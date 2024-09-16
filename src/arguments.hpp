@@ -15,35 +15,31 @@ enum ArgumentType
   ArgumentType_PATH,
 };
 
+union ArgumentValue
+{
+  bool boolean;
+  u64 number;
+};
+
 struct Argument
 {
-  String str;
+  String str = 0;
+  ArgumentValue value = ArgumentValue{};
+  ArgumentType type = ArgumentType_NIL;
 
-  virtual ArgumentType type() const;
-};
+  Argument() {};
 
-struct FlagArgument
-{
-  ArgumentType type() const { return ArgumentType_FLAG; }
-};
+  Argument(String s)
+  {
+    this->str = s;
+  }
 
-struct BooleanArgument : public Argument
-{
-  bool value;
-
-  ArgumentType type() const { return ArgumentType_BOOLEAN; }
-};
-
-struct NumberArgument : public Argument
-{
-  u64 value;
-
-  ArgumentType type() const { return ArgumentType_NUMBER; }
-};
-
-struct PathArgument : public Argument
-{
-  ArgumentType type() const { return ArgumentType_PATH; }
+  Argument(String s, ArgumentValue v, ArgumentType t)
+  { 
+    this->str = s; 
+    this->value = v;
+    this->type = t;
+  }
 };
 
 String string_from_argv(char *argv[], i32 argc, Arena *arena);

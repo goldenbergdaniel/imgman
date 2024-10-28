@@ -1,14 +1,8 @@
-#include "base_arena.hpp"
-
-#include <cstring>
-
 #ifdef USE_CUSTOM_ALLOC
 #ifdef PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-
-#include <stdio.h>
 
 #ifdef PLATFORM_UNIX
 #include <unistd.h>
@@ -23,12 +17,16 @@
 #endif
 #endif
 
+#include <cstring>
+
+#include "base.hpp"
+
 // @Arena //////////////////////////////////////////////////////////////////////
 
 #define PAGES_PER_COMMIT 4
 
 #ifndef SCRATCH_SIZE
-#define SCRATCH_SIZE MiB(64)
+#define SCRATCH_SIZE GiB(1)
 #endif
 
 static byte *align_ptr(byte *ptr, u32 align);
@@ -39,7 +37,7 @@ thread_local Arena _scratch_2;
 Arena::Arena(u64 size)
 {
   #ifdef USE_CUSTOM_ALLOC
-  arena.memory = os_reserve_vm(nullptr, size);
+  this->memory = os_reserve_vm(nullptr, size);
   #else
   this->memory = new byte[size];
   memset(this->memory, 0, size);
@@ -58,7 +56,7 @@ Arena::~Arena()
 void Arena::release()
 {
   #ifdef USE_CUSTOM_ALLOC
-  os_release_vm(arena->memory, 0);
+  os_release_vm(this->memory, 0);
   #else
   delete[] this->memory;
   #endif
@@ -73,13 +71,13 @@ byte *Arena::push(u64 size, u64 align)
   this->allocated = ptr + size;
 
   #ifdef USE_CUSTOM_ALLOC
-  if (arena->committed < arena->allocated)
+  if (this->committed < this->allocated)
   {
     u64 granularity = os_get_page_size() * PAGES_PER_COMMIT;
-    u64 size_to_commit = (u64) (arena->allocated - arena->committed);
+    u64 size_to_commit = (u64) (this->allocated - this->committed);
     size_to_commit += -size_to_commit & (granularity - 1);
 
-    bool ok = os_commit_vm(arena->committed, size_to_commit);
+    bool ok = os_commit_vm(this->committed, size_to_commit);
     if (!ok)
     {
       #ifdef PLATFORM_WINDOWS
@@ -90,7 +88,7 @@ byte *Arena::push(u64 size, u64 align)
       assert(0);
     }
 
-    arena->committed += size_to_commit;
+    this->committed += size_to_commit;
   }
   #endif
   
@@ -113,9 +111,9 @@ void Arena::pop(u64 size)
 void Arena::clear()
 {
   #ifdef USE_CUSTOM_ALLOC
-  if (arena->decommit_on_clear)
+  if (this->decommit_on_clear)
   {
-    u64 commit_size = arena->committed - arena->memory;
+    u64 commit_size = this->committed - this->memory;
     u64 page_size = os_get_page_size();
 
     // If committed pages > 16, decommit pages after 16th
@@ -123,9 +121,9 @@ void Arena::clear()
     u64 page_limit = page_size * 16;
     if (commit_size > page_limit)
     {
-      byte *start_addr = arena->memory + page_limit;
+      byte *start_addr = this->memory + page_limit;
       os_decommit_vm(start_addr, commit_size - page_limit);
-      arena->committed = start_addr;
+      this->committed = start_addr;
     }
   }
   #endif
@@ -138,7 +136,7 @@ void Arena::clear()
   this->allocated = this->memory;
 }
 
-void init_scratch_arenas(void)
+void init_scratches(void)
 {
   _scratch_1 = Arena(SCRATCH_SIZE);
   _scratch_1.id = 0;
@@ -146,20 +144,15 @@ void init_scratch_arenas(void)
   _scratch_2.id = 1;
 }
 
-Arena get_scratch_arena(Arena *conflict)
+Arena *get_scratch(Arena *conflict)
 {
-  Arena result = _scratch_1;
+  Arena *result = &_scratch_1;
   
-  if (conflict != nullptr)
+  if (conflict == nullptr) return result;
+  
+  if (conflict->id == _scratch_1.id)
   {
-    if (conflict->id == _scratch_1.id)
-    {
-      result = _scratch_2;
-    }
-    else if (conflict->id == _scratch_2.id)
-    {
-      result = _scratch_1;
-    }
+    result = &_scratch_2;
   }
 
   return result;
@@ -176,4 +169,26 @@ byte *align_ptr(byte *ptr, u32 align)
   }
 
 	return (byte *) result;
+}
+
+ArenaTemp::ArenaTemp(Arena *arena)
+{
+  this->data = arena;
+  this->start = arena->allocated;
+}
+
+ArenaTemp::~ArenaTemp()
+{
+  end_temp(*this);
+}
+
+ArenaTemp begin_temp(Arena *arena)
+{
+  ArenaTemp result(arena);
+  return result;
+}
+
+void end_temp(ArenaTemp temp)
+{
+  temp.data->pop(temp.data->allocated - temp.start);
 }

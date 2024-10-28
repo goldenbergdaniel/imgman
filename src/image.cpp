@@ -234,7 +234,7 @@ void Image::write_to_path(String path) const
 {
   switch (this->format_type())
   {
-    case FormatType_Nil:
+    case FormatType_NIL:
     break;
     case FormatType_PNG:
       stbi_write_png(path.raw_data(), 

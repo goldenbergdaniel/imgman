@@ -25,3 +25,15 @@ typedef double f64;
 #define has_bit(set, bit) ((set & bit) != 0)
 
 #define log_color(caption, r, g, b) (printf("%s%i, %i, %i\n", caption, (i32) r, (i32) g, (i32) b))
+
+#if defined(_WIN32)
+#define PLATFORM_WINDOWS
+#elif defined(__APPLE__)
+#define PLATFORM_MACOS
+#define PLATFORM_UNIX
+#elif defined (__linux__)
+#define PLATFORM_LINUX
+#define PLATFORM_UNIX
+#endif
+
+#define USE_CUSTOM_ALLOC

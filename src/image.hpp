@@ -11,7 +11,7 @@ enum Channel
 
 enum FormatType
 {
-  FormatType_Nil,
+  FormatType_NIL,
 
   FormatType_PNG,
   FormatType_JPG,
@@ -25,7 +25,7 @@ class Image
 {
 private:
   byte *data = nullptr;
-  FormatType type = FormatType_Nil;
+  FormatType type = FormatType_NIL;
 
 public:
   i32 width = 0;

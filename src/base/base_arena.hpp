@@ -28,21 +28,21 @@ public:
   void release();
 };
 
-class ArenaTemp
+class Arena_Temp
 {
 public:
   Arena *data;
   byte *start;
 
-  ArenaTemp() {}
-  ArenaTemp(Arena *arena);
-  ~ArenaTemp();
+  Arena_Temp() {}
+  Arena_Temp(Arena *arena);
+  ~Arena_Temp();
 };
 
 #define arena_push(arena, T, count) (T *) arena->push(size_of(T) * count, align_of(T))
 
-ArenaTemp begin_temp(Arena *arena);
-void end_temp(ArenaTemp temp);
+Arena_Temp temp_begin(Arena *arena);
+void temp_end(Arena_Temp temp);
 
 void init_scratches(void);
 Arena *get_scratch(Arena *conflict);

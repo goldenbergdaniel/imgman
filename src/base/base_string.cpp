@@ -190,10 +190,10 @@ String String::concat(String s1, String s2, Arena *arena)
 
 String String::slice(u64 start, u64 end) const
 {
-  assert(start >= 0 && 
-         start < this->size && 
-         end > 0 && end <= this->size && 
-         start < end);
+  assert(start < end);
+  assert(start >= 0);
+  assert(end > 0);
+  assert(end <= this->size);
 
   String result = {0};
   result.data = this->data + start;

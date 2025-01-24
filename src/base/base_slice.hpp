@@ -37,9 +37,13 @@ public:
     this->count = other.count;
   }
 
+  [[nodiscard]]
   Slice<T> slice(u64 start, u64 end) const
   {
-    assert(start < end && start >= 0 && end <= this->count);
+    assert(start < end);
+    assert(start >= 0);
+    assert(end > 0);
+    assert(end <= this->count);
 
     Slice<T> result;
     result.data = &this->data[start];

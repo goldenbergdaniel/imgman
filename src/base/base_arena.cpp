@@ -65,6 +65,7 @@ void Arena::release()
   this->size = 0;
 }
 
+[[nodiscard]]
 byte *Arena::push(u64 size, u64 align)
 {
   byte *ptr = align_ptr(this->allocated, align);
@@ -128,7 +129,7 @@ void Arena::clear()
   }
   #endif
 
-  for (u64 i = 0; i < this->allocated - this->memory; i++)
+  for (u64 i = 0; i < (u64) (this->allocated - this->memory); i++)
   {
     this->memory[i] = 0;
   }
@@ -171,24 +172,24 @@ byte *align_ptr(byte *ptr, u32 align)
 	return (byte *) result;
 }
 
-ArenaTemp::ArenaTemp(Arena *arena)
+Arena_Temp::Arena_Temp(Arena *arena)
 {
   this->data = arena;
   this->start = arena->allocated;
 }
 
-ArenaTemp::~ArenaTemp()
+Arena_Temp::~Arena_Temp()
 {
-  end_temp(*this);
+  temp_end(*this);
 }
 
-ArenaTemp begin_temp(Arena *arena)
+Arena_Temp temp_begin(Arena *arena)
 {
-  ArenaTemp result(arena);
+  Arena_Temp result(arena);
   return result;
 }
 
-void end_temp(ArenaTemp temp)
+void temp_end(Arena_Temp temp)
 {
   temp.data->pop(temp.data->allocated - temp.start);
 }

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 
+typedef char* cstr;
 typedef uint8_t byte;
 typedef uint8_t b8;
 typedef uint16_t b16;

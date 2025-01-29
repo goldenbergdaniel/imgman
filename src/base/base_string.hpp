@@ -5,18 +5,13 @@
 
 // @String /////////////////////////////////////////////////////////////////////
 
-#define str(lit) (String(lit))
+#define str(lit) ((String){.data = (char *) lit, .size = size_of(lit) - 1})
 
 class String
 {
 public:
   char *data = nullptr;
   u64 size = 0;
-
-public:
-  String() {}
-  String(const char *lit) { this->data = (char *) lit; this->size = size_of(lit) - 1; }
-  String(char *cstr, u64 len) { this->data = cstr; this->size = len; }
 
   static bool equals(String s1, String s2);
   static String copy(String s, Arena *arena);
@@ -52,6 +47,12 @@ public:
   {
     this->data = other.data;
     this->size = other.size;
+  }
+
+  inline const 
+  bool operator==(String other)
+  {
+    return equals(*this, other);
   }
 };
 

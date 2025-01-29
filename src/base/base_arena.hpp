@@ -40,6 +40,7 @@ public:
 };
 
 #define arena_push(arena, T, count) (T *) arena->push(size_of(T) * count, align_of(T))
+#define arena_push_slc(arena, T, count) Slice<T>((T *) arena->push(size_of(T) * count, align_of(T)), count)
 
 Arena_Temp temp_begin(Arena *arena);
 void temp_end(Arena_Temp temp);

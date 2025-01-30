@@ -2,6 +2,8 @@
 
 #include "argument_parser.hpp"
 
+Argument NIL_ARGUMENT = (Argument) {};
+
 String string_from_argv(char *argv[], i32 argc, Arena *arena)
 {
   String result;
@@ -38,17 +40,20 @@ Slice<Argument> arguments_from_string(String arg_str, Arena *arena)
     for (u64 tokenizer_pos = 0; tokenizer_pos < arg_str.len(); tokenizer_pos++)
     {
       char c = arg_str[tokenizer_pos];
+
       if (c == ' ')
       {
         String substr = arg_str.slice(tokenizer_last_pos, tokenizer_pos);
         Argument arg(substr);
+        // arg.str.print();
         arg_buf[arg_cnt++] = arg;
-        tokenizer_last_pos = ++tokenizer_pos + 1;
+        tokenizer_last_pos = tokenizer_pos + 1;
       }
       else if (c == ':' || c == ',')
       {
         String substr = arg_str.slice(tokenizer_last_pos, tokenizer_pos);
         Argument arg(substr);
+        // arg.str.print();
         arg_buf[arg_cnt++] = arg;
         tokenizer_last_pos = tokenizer_pos + 1;
       }
@@ -56,6 +61,7 @@ Slice<Argument> arguments_from_string(String arg_str, Arena *arena)
       {
         String substr = arg_str.slice(tokenizer_last_pos, tokenizer_pos+1);
         Argument arg(substr);
+        // arg.str.print();
         arg_buf[arg_cnt++] = arg;
       }
     }
@@ -74,25 +80,42 @@ Slice<Argument> arguments_from_string(String arg_str, Arena *arena)
       if (string_is_argument(arg.str))
       {
         arg.kind = Argument_Kind_COMMAND;
-        arg.arg_idx = -1;
-        arg.cmd_idx = cmd_idx++;
+        arg.arg_pos = -1;
+        arg.cmd_pos = ++cmd_idx;
         local_arg_idx = 0;
       }
       else if (string_is_number(arg.str))
       {
         arg.kind = Argument_Kind_NUMBER;
         arg.value.number = number_from_string(arg.str);
-        arg.arg_idx = local_arg_idx;
-        arg.cmd_idx = cmd_idx;
+        arg.arg_pos = ++local_arg_idx;
+        arg.cmd_pos = cmd_idx+1;
       }
       else if (string_is_bool(arg.str))
       {
         arg.kind = Argument_Kind_BOOLEAN;
         arg.value.boolean = bool_from_string(arg.str); 
-        arg.arg_idx = local_arg_idx;
-        arg.cmd_idx = cmd_idx;
+        arg.arg_pos = ++local_arg_idx;
+        arg.cmd_pos = cmd_idx+1;
+      }
+      else
+      {
+        arg.kind = Argument_Kind_FLAGS;
+        arg.arg_pos = ++local_arg_idx;
+        arg.cmd_pos = cmd_idx+1;
       }
     }
+  }
+
+  return result;
+}
+
+Argument *Argument_Store::consume()
+{
+  Argument *result = &NIL_ARGUMENT;
+  if (this->arg_pos != this->data.len)
+  {
+    result = &this->data[this->arg_pos++];
   }
 
   return result;
@@ -151,24 +174,4 @@ bool bool_from_string(String str)
 {
   assert(string_is_bool(str));
   return str == str("false") ? false : true;
-}
-
-Slice<char> flags_from_string(String str, String flags, Arena *arena)
-{
-  Slice<char> result = arena_push_slc(arena, char, flags.len());
-  u32 valid_flag_cnt = 0;
-
-  for (u32 i = 0; i < flags.len(); i++)
-  {
-    for (u32 j = 0; j < str.len(); j++)
-    {
-      if (str[j] == flags[i])
-      {
-        result[valid_flag_cnt++] = flags[i];
-        break;
-      }
-    }
-  }
-
-  return result;
 }

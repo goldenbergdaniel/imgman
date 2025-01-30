@@ -16,37 +16,68 @@ i32 main(i32 argc, char *argv[])
   if (argc > 1)
   {
     String arg_str = string_from_argv(argv, argc, &perm_arena);
-    Slice<Argument> args = arguments_from_string(arg_str, &perm_arena);
-    for (u64 i = 0; i < args.len; i++)
+    Slice<Argument> arg_slc = arguments_from_string(arg_str, &perm_arena);
+    for (u64 i = 0; i < arg_slc.len; i++)
     {
       // args[i].str.print();
     }
 
-    for (u64 arg_idx = 0; arg_idx < args.len; arg_idx++)
+    Argument_Store args;
+    args.data = arg_slc;
+
+    // - Parser loop ---
+    while (true)
     {
-      Argument &arg = args[arg_idx];
-      if (arg.kind == Argument_Kind_COMMAND)
+      Argument *arg = args.consume();
+      if (arg->kind == Argument_Kind_COMMAND)
       {
-        if (arg.str == str("-add"))
+        if (arg->str == str("-add"))
         {
-          Argument val = args[++arg_idx];
-          if (val.kind != Argument_Kind_NUMBER)
+          Argument *val = args.consume();
+          if (val->kind != Argument_Kind_NUMBER)
           {
-            printf("error: argument %i of command %i is not a number\n", 
-                   arg.arg_idx, arg.cmd_idx);
+            printf("error: parameter %i of command %i must be a number\n", 
+                   val->arg_pos, val->cmd_pos);
             return 1;
           }
 
-          // Argument ch = args[++arg_idx];
-          // if (ch.kind != Argument_Kind_CHANNELS)
-          // {
-          //   printf("error: argument %i of command %i is not a channel set", 
-          //          arg.arg_idx, arg.cmd_idx);
-          //   return 1;
-          // }
+          Argument *ch = args.consume();
+          if (ch->kind != Argument_Kind_FLAGS)
+          {
+            printf("error: argument %i of command %i must be a channel set\n", 
+                   ch->arg_pos, ch->cmd_pos);
+            return 1;
+          }
 
-          target_image.add(val.value.number, Channel_R | Channel_B);
+          Channel_Set channels = 0;
+          for (u64 i = 0; i < ch->str.len(); i++)
+          {
+            char flag = ch->str[i];
+            if (flag == 'R' || flag == 'r')
+            {
+              channels |= Channel_R;
+            }
+            else if (flag == 'G' || flag == 'g')
+            {
+              channels |= Channel_G;
+            }
+            else if (flag == 'B' || flag == 'b')
+            {
+              channels |= Channel_B;
+            }
+          }
+
+          if (channels == 0)
+          {
+            channels = Channel_R | Channel_G | Channel_B;
+          }
+
+          target_image.add(val->value.number, channels);
         }
+      }
+      else if (arg->kind == Argument_Kind_NIL)
+      {
+        break;
       }
     }
 

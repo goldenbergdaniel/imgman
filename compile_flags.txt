@@ -2,4 +2,5 @@
 -I./ext
 -Wall
 -Wno-unused
+-Wconversion
 -Werror

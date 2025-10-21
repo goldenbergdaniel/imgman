@@ -1,5 +1,0 @@
-TODO
-  [_] cli argument parser
-
-ARGUMENTS
-  imgman path/to/image -resize:256,256 -flip:h -add_img:"path/to/image",rb

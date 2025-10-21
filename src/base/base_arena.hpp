@@ -6,15 +6,13 @@
 #define MiB(bytes) ((u64) bytes << 20)
 #define GiB(bytes) ((u64) bytes << 30)
 
-// @Arena //////////////////////////////////////////////////////////////////////
-
 class Arena
 {
 public:
   u64 size = 0;
-  byte *memory = 0;
-  byte *allocated = 0;
-  byte *committed = 0;
+  byte *memory = nullptr;
+  byte *allocated = nullptr;
+  byte *committed = nullptr;
   bool decommit_on_clear = false;
   u8 id = 0;
 
@@ -22,7 +20,7 @@ public:
   Arena(u64 size);
   ~Arena();
   
-  byte *push(u64 size, u64 align);
+  byte *push(u64 size, u32 align);
   void pop(u64 size);
   void clear();
   void release();
@@ -31,7 +29,7 @@ public:
 class Arena_Temp
 {
 public:
-  Arena *data;
+  Arena *arena;
   byte *start;
 
   Arena_Temp() {}

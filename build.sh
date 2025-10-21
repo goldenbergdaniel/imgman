@@ -1,4 +1,7 @@
 #!/bin/bash
+set -e
 
-mkdir -p out
-g++ src/main.cpp -o out/imgman -std=c++23 -O0 -g -Wall -Werror -fwhole-program -fno-exceptions -Iext -Lext/stb -lstbi
+CC=clang++
+
+clang++ src/main.cpp -o Vsim -std=c++17 -O0 -g -Wall -Wno-unused -Wconversion -Werror -fno-exceptions
+./Vsim "$@"

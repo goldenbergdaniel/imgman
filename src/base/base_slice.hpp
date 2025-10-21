@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "base_common.hpp"
+#include "base_arena.hpp"
 
 template <typename T>
 class Slice
@@ -19,7 +20,7 @@ public:
     this->from_ptr(s, strlen(s));
   }
 
-  Slice(T *data, u64 count=1)
+  Slice(T *data, u64 count)
   {
     this->from_ptr(data, count);
   }
@@ -32,7 +33,8 @@ public:
   inline 
   T &operator[](u64 index) const
   {
-    assert(index >= 0 && index < this->len);
+    assert(index >= 0);
+    assert(index < this->len);
 
     return this->data[index];
   }
@@ -59,7 +61,7 @@ public:
 
   void from_ptr(T *data, u64 count=1)
   {
-    assert(count > 0);
+    assert(count >= 0);
 
     this->data = data;
     this->len = count;
@@ -67,7 +69,8 @@ public:
 
   void from_ptr(T *data, u64 start, u64 end)
   {
-    assert(start < end && start >= 0);
+    assert(start < end);
+    assert(start >= 0);
 
     this->data = &data[start];
     this->len = end - start;
@@ -75,7 +78,9 @@ public:
 
   Slice<T> slice(u64 start, u64 end) const
   {
-    assert(start < end && start >= 0 && end <= this->len);
+    assert(start < end);
+    assert(start >= 0);
+    assert(end <= this->len);
 
     Slice<T> result;
     result.data = &this->data[start];
@@ -96,12 +101,12 @@ public:
     this->len += slc.len;
   }
 
-  cstr clone_to_cstr()
+  cstr clone_to_cstr(Arena *arena) const
   {
-    T *data = new T[this->len+1];
-    Slice<T> result = Slice<T>(data, this->len+1);
-    result[result.len] = 0;
-    return result.data;
+    char *result = arena_push(arena, char, this->len+1);
+    memcpy(result, this->data, this->len);
+    result[this->len] = 0;
+    return (cstr) result;
   }
 
   void print(bool new_line) const
@@ -111,6 +116,9 @@ public:
       printf("%c", this->data[i]);
     }
 
-    if (new_line) printf("\n");
+    if (new_line)
+    {
+      printf("\n");
+    }
   }
 };

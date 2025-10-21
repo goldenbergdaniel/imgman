@@ -36,12 +36,12 @@ thread_local Arena _scratch_2;
 
 Arena::Arena(u64 size)
 {
-  #ifdef USE_CUSTOM_ALLOC
+#ifdef USE_CUSTOM_ALLOC
   this->memory = os_reserve_vm(nullptr, size);
-  #else
+#else
   this->memory = new byte[size];
   memset(this->memory, 0, size);
-  #endif
+#endif
   this->allocated = this->memory;
   this->committed = this->memory;
   this->size = size;
@@ -55,23 +55,23 @@ Arena::~Arena()
 
 void Arena::release()
 {
-  #ifdef USE_CUSTOM_ALLOC
+#ifdef USE_CUSTOM_ALLOC
   os_release_vm(this->memory, 0);
-  #else
+#else
   delete[] this->memory;
-  #endif
+#endif
   this->memory = nullptr;
   this->allocated = nullptr;
   this->size = 0;
 }
 
 [[nodiscard]]
-byte *Arena::push(u64 size, u64 align)
+byte *Arena::push(u64 size, u32 align)
 {
   byte *ptr = align_ptr(this->allocated, align);
   this->allocated = ptr + size;
 
-  #ifdef USE_CUSTOM_ALLOC
+#ifdef USE_CUSTOM_ALLOC
   if (this->committed < this->allocated)
   {
     u64 granularity = os_get_page_size() * PAGES_PER_COMMIT;
@@ -86,12 +86,12 @@ byte *Arena::push(u64 size, u64 align)
       printf("Error %i. Failed to commit! Size: %llu\n", code, size_to_commit);
       OutputDebugStringA("Failed to commit!\n");
       #endif
-      assert(0);
+      assert(false);
     }
 
     this->committed += size_to_commit;
   }
-  #endif
+#endif
   
   return ptr;
 }
@@ -100,7 +100,7 @@ void Arena::pop(u64 size)
 {
   this->allocated -= size;
   
-  // Zero the memory
+  // - Zero the memory ---
   u64 start_idx = (u64) (this->allocated - this->memory) - 1;
   u64 end_idx = start_idx + size;
   for (u64 i = start_idx; i < end_idx; i++)
@@ -111,10 +111,10 @@ void Arena::pop(u64 size)
 
 void Arena::clear()
 {
-  #ifdef USE_CUSTOM_ALLOC
+#ifdef USE_CUSTOM_ALLOC
   if (this->decommit_on_clear)
   {
-    u64 commit_size = this->committed - this->memory;
+    u64 commit_size = (u64) this->committed - (u64) this->memory;
     u64 page_size = os_get_page_size();
 
     // If committed pages > 16, decommit pages after 16th
@@ -127,7 +127,7 @@ void Arena::clear()
       this->committed = start_addr;
     }
   }
-  #endif
+#endif
 
   for (u64 i = 0; i < (u64) (this->allocated - this->memory); i++)
   {
@@ -174,7 +174,7 @@ byte *align_ptr(byte *ptr, u32 align)
 
 Arena_Temp::Arena_Temp(Arena *arena)
 {
-  this->data = arena;
+  this->arena = arena;
   this->start = arena->allocated;
 }
 
@@ -191,5 +191,5 @@ Arena_Temp temp_begin(Arena *arena)
 
 void temp_end(Arena_Temp temp)
 {
-  temp.data->pop(temp.data->allocated - temp.start);
+  temp.arena->pop((u64) temp.arena->allocated - (u64) temp.start);
 }

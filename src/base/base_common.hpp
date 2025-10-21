@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-typedef char* cstr;
 typedef uint8_t byte;
 typedef uint8_t b8;
 typedef uint16_t b16;
@@ -19,22 +18,23 @@ typedef int32_t i32;
 typedef int64_t i64;
 typedef float f32;
 typedef double f64;
+typedef intptr_t iptr;
+typedef uintptr_t uptr;
+typedef const char *cstr;
 
 #define size_of(T) sizeof(T)
 #define align_of(T) alignof(T)
 
 #define has_bit(set, bit) ((set & bit) != 0)
 
-#define log_color(caption, r, g, b) (printf("%s%i, %i, %i\n", caption, (i32) r, (i32) g, (i32) b))
-
 #if defined(_WIN32)
-#define PLATFORM_WINDOWS
+  #define PLATFORM_WINDOWS
 #elif defined(__APPLE__)
-#define PLATFORM_MACOS
-#define PLATFORM_UNIX
+  #define PLATFORM_MACOS
+  #define PLATFORM_UNIX
 #elif defined (__linux__)
-#define PLATFORM_LINUX
-#define PLATFORM_UNIX
+  #define PLATFORM_LINUX
+  #define PLATFORM_UNIX
 #endif
 
 #define USE_CUSTOM_ALLOC

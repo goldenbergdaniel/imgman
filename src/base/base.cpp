@@ -1,6 +1,0 @@
-#include "base.hpp"
-#include "base_arena.cpp"
-#include "base_os.cpp"
-#include "base_slice.hpp"
-#include "base_dynamic_array.hpp"
-#include "base_string.cpp"

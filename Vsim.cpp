@@ -1,14 +1,10 @@
 #include <unistd.h>
 #include <sys/fcntl.h>
-#include <sys/fcntl.h>
-#include <sys/mman.h>
-#include <sys/param.h>
 
 #include <map>
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 
@@ -51,9 +47,6 @@ public:
   u64 size = 0;
   byte *memory = nullptr;
   byte *allocated = nullptr;
-  byte *committed = nullptr;
-  bool decommit_on_clear = false;
-  u8 id = 0;
 
   Arena() {}
   Arena(u64 size);
@@ -76,9 +69,7 @@ Arena::Arena(u64 size)
   memset(this->memory, 0, size);
   
   this->allocated = this->memory;
-  this->committed = this->memory;
   this->size = size;
-  this->decommit_on_clear = true;
 }
 
 Arena::~Arena()
@@ -600,8 +591,8 @@ enum Opcode_Name
   Opcode_ADDI,
   Opcode_ANDI,
   Opcode_ORI,
-  Opcode_SLL,
-  Opcode_SRA,
+  Opcode_SLLI,
+  Opcode_SRAI,
   Opcode_LW,
 
   Opcode_JAL,
@@ -622,6 +613,7 @@ struct Instruction
   i32 imm;
   u32 fn3;
   u32 fn7;
+  String needed;
 };
 
 Opcode_Name opcode_table[128];
@@ -645,8 +637,8 @@ void init_global_data()
     opcode_table[0b0000010] = Opcode_ADDI;
     opcode_table[0b0000110] = Opcode_ANDI;
     opcode_table[0b0001010] = Opcode_ORI;
-    opcode_table[0b0001110] = Opcode_SLL;
-    opcode_table[0b0010010] = Opcode_SRA;
+    opcode_table[0b0001110] = Opcode_SLLI;
+    opcode_table[0b0010010] = Opcode_SRAI;
     opcode_table[0b0010110] = Opcode_LW;
     
     opcode_table[0b0000011] = Opcode_JAL;
@@ -668,8 +660,8 @@ void init_global_data()
     opcode_name_table[Opcode_ADDI] = S("addi");
     opcode_name_table[Opcode_ANDI] = S("andi");
     opcode_name_table[Opcode_ORI]  = S("ori");
-    opcode_name_table[Opcode_SLL]  = S("sll");
-    opcode_name_table[Opcode_SRA]  = S("sra");
+    opcode_name_table[Opcode_SLLI] = S("slli");
+    opcode_name_table[Opcode_SRAI] = S("srai");
     opcode_name_table[Opcode_LW]   = S("lw");
 
     opcode_name_table[Opcode_JAL]   = S("jal");
@@ -715,44 +707,44 @@ void init_global_data()
 
 Instruction instruction_from_bytecode(u32 bytecode)
 {
-  Instruction instruction = {};
-  instruction.bytecode = bytecode;
-  instruction.opcode = bytecode & 0b1111111;
-  instruction.opcode_name = opcode_table[instruction.opcode];
+  Instruction instr = {};
+  instr.bytecode = bytecode;
+  instr.opcode = bytecode & 0b1111111;
+  instr.opcode_name = opcode_table[instr.opcode];
   
   u32 format = bytecode & 0b11;
   switch (format)
   {
   case 0b00:
-    instruction.imm |= (      bytecode & (      (i32) 0b11111   << 7))  >> 7;
-    instruction.fn3 |= (      bytecode & (      (u32) 0b111     << 12)) >> 12;
-    instruction.rs1 |= (      bytecode & (      (u32) 0b11111   << 15)) >> 15;
-    instruction.rs2 |= (      bytecode & (      (u32) 0b11111   << 20)) >> 20;
-    instruction.imm |= ((i32) bytecode & (i32) ((u32) 0b1111111 << 25)) >> 25;
+    instr.imm += (      bytecode & (      (i32) 0b11111   << 7))  >> 7;
+    instr.fn3 |= (      bytecode & (      (u32) 0b111     << 12)) >> 12;
+    instr.rs1 |= (      bytecode & (      (u32) 0b11111   << 15)) >> 15;
+    instr.rs2 |= (      bytecode & (      (u32) 0b11111   << 20)) >> 20;
+    instr.imm += ((i32) bytecode & (i32) ((u32) 0b1111111 << 25)) >> 20;
     break;
 
   case 0b01:
-    instruction.rd  |= (bytecode & ((u32) 0b11111   << 7))  >> 7;
-    instruction.fn3 |= (bytecode & ((u32) 0b111     << 12)) >> 12;
-    instruction.rs1 |= (bytecode & ((u32) 0b11111   << 15)) >> 15;
-    instruction.rs2 |= (bytecode & ((u32) 0b11111   << 20)) >> 20;
-    instruction.fn7 |= (bytecode & ((u32) 0b1111111 << 25)) >> 25;
+    instr.rd  |= (bytecode & ((u32) 0b11111   << 7))  >> 7;
+    instr.fn3 |= (bytecode & ((u32) 0b111     << 12)) >> 12;
+    instr.rs1 |= (bytecode & ((u32) 0b11111   << 15)) >> 15;
+    instr.rs2 |= (bytecode & ((u32) 0b11111   << 20)) >> 20;
+    instr.fn7 |= (bytecode & ((u32) 0b1111111 << 25)) >> 25;
     break;
 
   case 0b10:
-    instruction.rd  |= (      bytecode & (      (u32)       0b11111  << 7))  >> 7;
-    instruction.fn3 |= (      bytecode & (      (u32)       0b111    << 12)) >> 12;
-    instruction.rs1 |= (      bytecode & (      (u32)       0b11111  << 15)) >> 15;
-    instruction.imm |= ((i32) bytecode & (i32) ((u32) 0b111111111111 << 20)) >> 20;
+    instr.rd  |= (      bytecode & (      (u32) 0b11111        << 7))  >> 7;
+    instr.fn3 |= (      bytecode & (      (u32) 0b111          << 12)) >> 12;
+    instr.rs1 |= (      bytecode & (      (u32) 0b11111        << 15)) >> 15;
+    instr.imm |= ((i32) bytecode & (i32) ((u32) 0b111111111111 << 20)) >> 20;
     break;
 
   case 0b11:
-    instruction.rd  |= (      bytecode & (      (u32) 0b11111                 << 7))  >> 7;
-    instruction.imm |= ((i32) bytecode & (i32) ((u32) 0b111111111111111111111 << 12)) >> 12;
+    instr.rd  |= (      bytecode & (      (u32) 0b11111                 << 7))  >> 7;
+    instr.imm |= ((i32) bytecode & (i32) ((u32) 0b111111111111111111111 << 12)) >> 12;
     break;
   }
 
-  return instruction;
+  return instr;
 }
 
 i32 bytecode_from_string(String str)
@@ -776,8 +768,9 @@ i32 bytecode_from_string(String str)
   return result;
 }
 
-void disassemble(Slice<Instruction> instructions, Arena *temp)
+void disassemble(Slice<Instruction> instructions, Arena *perm, Arena *temp)
 {
+  FILE *output_file = fopen("disassembly.txt", "w");
   bool hit_break = false;
 
   for (u64 i = 0; i < instructions.len; i++)
@@ -796,7 +789,7 @@ void disassemble(Slice<Instruction> instructions, Arena *temp)
     {
       String opcode_str = opcode_name_table[instr.opcode_name];
       builder.write_string(opcode_str);
-      builder.write_string(S(" "));
+      builder.write_char(' ');
 
       char fmt_buf[128] = {};
       i32 fmt_len = 0;
@@ -805,14 +798,26 @@ void disassemble(Slice<Instruction> instructions, Arena *temp)
       switch (format)
       {
       case 0b00:
-        builder.write_string(reg_name_table[instr.rd]);
-        builder.write_string(S(", "));
-        builder.write_string(reg_name_table[instr.rs1]);
-        builder.write_string(S(", "));
-        builder.write_char('#');
-        fmt_buf[64] = {};
-        fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
-        builder.write_string(String{fmt_buf, (u64) fmt_len});
+        if (instr.opcode_name != Opcode_SW)
+        {
+          builder.write_string(reg_name_table[instr.rs1]);
+          builder.write_string(S(", "));
+          builder.write_string(reg_name_table[instr.rs2]);
+          builder.write_string(S(", "));
+          builder.write_char('#');
+          fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
+          builder.write_string(String{fmt_buf, (u64) fmt_len});
+        }
+        else
+        {
+          builder.write_string(reg_name_table[instr.rs1]);
+          builder.write_string(S(", "));
+          fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
+          builder.write_string(String{fmt_buf, (u64) fmt_len});
+          builder.write_char('(');
+          builder.write_string(reg_name_table[instr.rs2]);
+          builder.write_char(')');
+        }
         break;
 
       case 0b01:
@@ -825,25 +830,40 @@ void disassemble(Slice<Instruction> instructions, Arena *temp)
         break;
 
       case 0b10:
-        builder.write_string(reg_name_table[instr.rd]);
-        builder.write_string(S(", "));
-        builder.write_string(reg_name_table[instr.rs1]);
-        builder.write_string(S(", "));
-        builder.write_char('#');
-        fmt_buf[64] = {};
-        fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
-        builder.write_string(String{fmt_buf, (u64) fmt_len});
+        if (instr.opcode_name != Opcode_LW)
+        {
+          builder.write_string(reg_name_table[instr.rd]);
+          builder.write_string(S(", "));
+          builder.write_string(reg_name_table[instr.rs1]);
+          builder.write_string(S(", "));
+          builder.write_char('#');
+          fmt_buf[64] = {};
+          fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
+          builder.write_string(String{fmt_buf, (u64) fmt_len});
+        }
+        else
+        {
+          builder.write_string(reg_name_table[instr.rd]);
+          builder.write_string(S(", "));
+          fmt_buf[64] = {};
+          fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
+          builder.write_string(String{fmt_buf, (u64) fmt_len});
+          builder.write_char('(');
+          builder.write_string(reg_name_table[instr.rs1]);
+          builder.write_char(')');
+        }
         break;
 
       case 0b11:
-        builder.write_string(reg_name_table[instr.rd]);
-        builder.write_string(S(", "));
-        builder.write_char('#');
-        fmt_buf[64] = {};
-        fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
-        builder.write_string(String{fmt_buf, (u64) fmt_len});
-        break;
-        
+        if (instr.opcode_name != Opcode_BREAK)
+        {
+          builder.write_string(reg_name_table[instr.rd]);
+          builder.write_string(S(", "));
+          builder.write_char('#');
+          fmt_buf[64] = {};
+          fmt_len = snprintf(fmt_buf, 64, "%i", instr.imm);
+          builder.write_string(String{fmt_buf, (u64) fmt_len});
+        }
         break;
       }
     }
@@ -853,10 +873,18 @@ void disassemble(Slice<Instruction> instructions, Arena *temp)
       hit_break = true;
     }
 
-    printf("%s      %i      %s\n", 
-           instr.bytecode_str.clone_to_cstr(temp), 
-           address, 
-           builder.to_string().clone_to_cstr(temp));
+    fprintf(output_file,
+          "%s\t%i\t%s\n", 
+          instr.bytecode_str.clone_to_cstr(temp), 
+          address, 
+          builder.to_string().clone_to_cstr(temp));
+
+    char fmt_buf[64] = {};
+    i32 fmt_len = snprintf(fmt_buf, 64, "%i", address);
+    String fmt_str = String{fmt_buf, (u64) fmt_len};
+    String instr_str = String::concat(S(" "), builder.to_string(), temp);
+    instr.needed = String::concat(fmt_str, instr_str, perm);
+    
     temp->clear();
   }
 
@@ -865,16 +893,45 @@ void disassemble(Slice<Instruction> instructions, Arena *temp)
 
 void simulate(Slice<Instruction> instructions, Arena *temp)
 {
+  FILE *output_file = fopen("simulation.txt", "w");
+
   static
   i32 registers[32] = {};
 
   static
   std::map<i32, i32> memory = {};
+  {
+    i32 offset = 256;
+    bool break_hit = false;
+
+    for (u32 i = 0; i < instructions.len; i++)
+    {
+      // - populate memory ---
+      if (break_hit)
+      {
+        memory[(i32) offset] = (i32) instructions[i].bytecode;
+        // printf("Loaded %i at %i\n", instructions[i].bytecode, offset);
+      }
+
+      offset += 4;
+      
+      if (instructions[i].opcode_name != Opcode_BREAK && !break_hit)
+      {
+        continue;
+      }
+      else
+      {
+        break_hit = true;
+      }
+    }
+  }
+
+  i32 cycle_cnt = 1;
+  bool break_hit = false;
 
   for (i32 pc_idx = 0; pc_idx < instructions.len;)
   {
     Instruction &instr = instructions[(u32) pc_idx];
-    String_Builder builder = String_Builder(temp);
     char fmt_buf[128] = {};
     i32 fmt_len = 0;
     i32 mem_addr = 0;
@@ -888,7 +945,7 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
       case Opcode_BEQ:
         if (registers[instr.rs1] == registers[instr.rs2])
         {
-          // jump_off = instr.imm;
+          jump_off = instr.imm >> 1;
         }
 
         break;
@@ -896,7 +953,7 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
       case Opcode_BNE:
         if (registers[instr.rs1] != registers[instr.rs2])
         {
-
+          jump_off = instr.imm >> 1;
         }
 
         break;
@@ -904,7 +961,7 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
       case Opcode_BLT:
         if (registers[instr.rs1] < registers[instr.rs2])
         {
-
+          jump_off = instr.imm >> 1;
         }
         
         break;
@@ -923,11 +980,11 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
         break;
 
       case Opcode_AND:
-        registers[instr.rd] = registers[instr.rs1] & registers[instr.rs2];
+        registers[instr.rd] = (i32) ((u32) registers[instr.rs1] & (u32) registers[instr.rs2]);
         break;
 
       case Opcode_OR:
-        registers[instr.rd] = registers[instr.rs1] | registers[instr.rs2];
+        registers[instr.rd] = (i32) ((u32) registers[instr.rs1] | (u32) registers[instr.rs2]);
         break;
 
       case Opcode_ADDI:
@@ -935,30 +992,33 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
         break;
 
       case Opcode_ANDI:
-        registers[instr.rd] = registers[instr.rs1] & instr.imm;
+        registers[instr.rd] = (i32) ((u32) registers[instr.rs1] & (u32) instr.imm);
         break;
 
       case Opcode_ORI:
-        registers[instr.rd] = registers[instr.rs1] | instr.imm;
+        registers[instr.rd] = (i32) ((u32) registers[instr.rs1] | (u32) instr.imm);
         break;
 
-      case Opcode_SLL:
-        registers[instr.rd] = registers[instr.rs1] << instr.imm;
+      case Opcode_SLLI:
+        registers[instr.rd] = (i32) ((u32) registers[instr.rs1] << (u32) instr.imm);
         break;
 
-      case Opcode_SRA:
+      case Opcode_SRAI:
         registers[instr.rd] = registers[instr.rs1] >> instr.imm;
         break;
 
       case Opcode_LW:
-        mem_addr = registers[instr.rs2] + instr.imm;
-        memory[mem_addr] = registers[instr.rs1];
+        mem_addr = registers[instr.rs1] + instr.imm;
+        registers[instr.rd] = memory[mem_addr];
         break;
 
       case Opcode_JAL:
+        registers[instr.rd] = 256 + (pc_idx + 1) * 4;
+        jump_off = instr.imm >> 1;
         break;
 
       case Opcode_BREAK:
+        break_hit = true;
         break;
     }
 
@@ -966,20 +1026,85 @@ void simulate(Slice<Instruction> instructions, Arena *temp)
 
     // - Print ---
     {
-      builder.write_string(S("--------------------\n"));
-      builder.write_string(S("Cycle "));
-    }
+      fprintf(output_file, "--------------------\n");
+      fprintf(output_file, "Cycle %i:\t%s\n", cycle_cnt, instr.needed.clone_to_cstr(temp));
+      fprintf(output_file, "Registers\n");
 
+      fprintf(output_file, "x00:\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\n", 
+              registers[0], 
+              registers[1], 
+              registers[2], 
+              registers[3], 
+              registers[4], 
+              registers[5], 
+              registers[6], 
+              registers[7]);
+
+      fprintf(output_file, "x08:\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\n", 
+              registers[8], 
+              registers[9], 
+              registers[10], 
+              registers[11], 
+              registers[12], 
+              registers[13], 
+              registers[14], 
+              registers[15]);
+
+      fprintf(output_file, "x16:\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\n", 
+              registers[16], 
+              registers[17], 
+              registers[18], 
+              registers[19], 
+              registers[20], 
+              registers[21], 
+              registers[22], 
+              registers[23]);
+
+      fprintf(output_file, "x24:\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\n", 
+              registers[24], 
+              registers[25], 
+              registers[26], 
+              registers[27], 
+              registers[28], 
+              registers[29], 
+              registers[30], 
+              registers[31]);
+
+      fprintf(output_file, "Data\n");
+
+      i32 addr_idx = 0;
+      for (const auto &pair : memory)
+      {
+        if (addr_idx % 8 == 0 && addr_idx != 0)
+        {
+          fprintf(output_file, "\n");
+        }
+
+        if (addr_idx % 8 == 0)
+        {
+          fprintf(output_file, "%i:\t", pair.first);
+        }
+
+        fprintf(output_file, "%i\t", pair.second);
+
+        addr_idx += 1;
+      }
+
+      fprintf(output_file, "\n");
+
+      cycle_cnt += 1;
+    }
     
-    printf("%s\n", builder.to_string().clone_to_cstr(temp));
     temp->clear();
+
+    if (break_hit) break;
   }
 }
 
 i32 main(i32 argc, char *argv[])
 {
-  Arena perm_arena = Arena(GiB(1));
-  Arena temp_arena = Arena(GiB(1));
+  Arena perm_arena = Arena(MiB(16));
+  Arena temp_arena = Arena(MiB(16));
 
   if (argc < 2) return 0;
 
@@ -1020,9 +1145,8 @@ i32 main(i32 argc, char *argv[])
     }
   }
 
-  // - Disassembl program ---
-  // disassemble(instructions.to_slice(), &temp_arena);
-  // printf("\n\n");
+  // - Disassemble program ---
+  disassemble(instructions.to_slice(), &perm_arena, &temp_arena);
 
   // - Simulate program ---
   simulate(instructions.to_slice(), &temp_arena);
